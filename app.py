@@ -4,8 +4,6 @@ from flask_scss import Scss
 from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
-
-
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SECRET_KEY'] = 'advanced programming project'
@@ -28,9 +26,7 @@ def check_account_exists(id):
     if account:
         return True
     return False
-
-# encrypting the password
-
+# encryption
 
 def encrypt_password(password):
     return generate_password_hash(password)
@@ -96,7 +92,8 @@ def edit(id: int):
             print(f"ERROR: {e}")
             return f"ERROR: {e}"
 
-#add a method to check the password confirmation
+
+# add a method to check the password confirmation
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
