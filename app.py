@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect
+
+from flask import Flask, render_template, redirect, request, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_scss import Scss
 from werkzeug.security import generate_password_hash
@@ -7,10 +8,14 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SECRET_KEY'] = 'advanced programming project'
+
+# Initialize extensions
 db = SQLAlchemy(app)
+# If you plan to use Flask-Scss, initialize it here (optional)
+# Scss(app)
 
 
-class Accounts(db.Model):
+class Account(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), nullable=False)
     username = db.Column(db.String(20), nullable=False)
@@ -55,7 +60,7 @@ def index():
             create_new_account(username, email, password)
             return redirect("/")
         except Exception as e:
-            print(f"ERROR: {e}")
+            db.session.rollback()
             return f"ERROR: {e}"
     else:  # to see all accounts
         accounts = Accounts.query.order_by(Accounts.id).all()
