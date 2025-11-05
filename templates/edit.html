@@ -1,0 +1,41 @@
+{% extends 'base.html %'}
+{% block head %}
+<title>Edit Account - Secure Share</title>
+{% endblock %}
+{% block content %}
+<div>
+    <div class="top-content">
+        <h1>Edit Account</h1>
+        <p>Update your account information</p>
+    </div>
+
+    <div class="bottom-content">
+        <h1>Update Information</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form action="/edit/{{ account.id }}" method="POST">
+            <h3>Username</h3>
+            <input type="text" placeholder="Username" name="username" id="username" value="{{ account.username }}"
+                required>
+
+            <h3>Email Address</h3>
+            <input type="email" placeholder="Email" name="email" id="email" value="{{ account.email }}" required>
+
+            <h3>New Password (leave blank to keep current)</h3>
+            <input type="password" placeholder="New password (optional)" name="password" id="password">
+
+            <button type="submit">Update Account</button>
+        </form>
+
+        <p><a href="/register">Back to accounts list</a></p>
+        <p><a href="/delete/{{ account.id }}">Delete Account</a></p>
+    </div>
+</div>
+{% endblock %}
