@@ -1,37 +1,39 @@
-{% block head %} {% endblock %}
+{% extends 'base.html' %}{% block head %}
+<title>Secure Share - Home</title>
+{% endblock %}
 
-  {% block content %}
-  <h1>
-    SecureShare
-  </h1>
-  <button>
-    <a href="/register"> Sign Up</a>
-  </button>
-  <button>
-    <a href="/login">Login</a>
-  </button>
-    
+{% block content %}
+<h1>
+  SecureShare
+</h1>
+<button>
+  <a href="/register"> Sign Up</a>
+</button>
+<button>
+  <a href="/login">Login</a>
+</button>
 
+
+<div>
+  <h1>Share Files Securely</h1>
+  <p>Your files are encrypted and protected. Upload, share, and download with complete peace of mind.</p>
   <div>
-    <h1>Share Files Securely</h1>
-    <p>Your files are encrypted and protected. Upload, share, and download with complete peace of mind.</p>
-    <div>
-      <div class="box">
-        <h3>Always Encrypted</h3>
-        <p>Your files are encrypted before upload and only you can access them</p>
-      </div>
-      <div class="box">
-        <h3>Secure Storage</h3>
-        <p>Your password is safely stored and protected from hackers</p>
-      </div>
-      <div class="box">
-        <h3>Easy to Use</h3>
-        <p>Simple upload and download process with no complicated setup</p>
-      </div>
+    <div class="box">
+      <h3>Always Encrypted</h3>
+      <p>Your files are encrypted before upload and only you can access them</p>
+    </div>
+    <div class="box">
+      <h3>Secure Storage</h3>
+      <p>Your password is safely stored and protected from hackers</p>
+    </div>
+    <div class="box">
+      <h3>Easy to Use</h3>
+      <p>Simple upload and download process with no complicated setup</p>
     </div>
   </div>
-    
+</div>
 
-  
-  
-  {% endblock %}
+
+
+
+{% endblock %}
