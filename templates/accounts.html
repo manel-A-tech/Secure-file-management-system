@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>All Accounts - Secure Share</title>
+{% endblock %}
+{% block content %}
+<div>
+    <div class="top-content">
+        <h1>All Registered Accounts</h1>
+        <p>View all users on Secure Share</p>
+    </div>
+    <div class="bottom-content">
+        <button><a href="/dashboard">Back to Dashboard</a></button>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <h2>User List</h2>
+        {% if accounts %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for account in accounts %}
+                <tr>
+                    <td>{{ account.id }}</td>
+                    <td>{{ account.username }}</td>
+                    <td>{{ account.email }}</td>
+                    <td>
+                        {% if current_user.id == account.id %}
+                        <a href="/edit/{{ account.id }}">Edit</a> |
+                        <a href="/delete/{{ account.id }}"
+                            onclick="return confirm('Are you sure you want to delete your account?')">Delete</a>
+                        {% else %}
+                        <span style="color: gray;">Not your account</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No accounts found.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

@@ -3,21 +3,31 @@
 {% endblock %}
 
 {% block content %}
-<h1>
-  SecureShare
-</h1>
-<button>
-  <a href="/register"> Sign Up</a>
-</button>
-<button>
-  <a href="/login">Login</a>
-</button>
-
-
 <div>
-  <h1>Share Files Securely</h1>
-  <p>Your files are encrypted and protected. Upload, share, and download with complete peace of mind.</p>
-  <div>
+ <h1>
+   SecureShare
+ </h1>
+ {% if current_user.is_authenticated %}
+    <p>Welcome back, {{ current_user.username }}!</p>
+    <button><a href="/dashboard">Go to Dashboard</a></button>
+    <button><a href="/logout">Logout</a></button>
+  {% else %}
+    <button><a href="/register">Sign Up</a></button>
+    <button><a href="/login">Login</a></button>
+  {% endif %}
+
+
+ <div>
+   <h1>Share Files Securely</h1>
+   <p>Your files are encrypted and protected. Upload, share, and download with complete peace of mind.</p>
+   {% with messages = get_flashed_messages(with_categories=true) %}
+     {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+   {% endwith %}
+   <div>
     <div class="box">
       <h3>Always Encrypted</h3>
       <p>Your files are encrypted before upload and only you can access them</p>
