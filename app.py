@@ -1,6 +1,5 @@
-
 from enum import unique
-from flask import Flask, flash, render_template, redirect, request, url_for, flash
+from flask import Flask, flash, render_template, redirect, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_scss import Scss
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -59,9 +58,9 @@ def home():
 def register():
     # add account
     if request.method == "POST":
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
         # Validation
         if not username or not email or not password:
@@ -105,7 +104,7 @@ def login():
             flash("invalid username or password", "error")
             return redirect("/login")
     else:
-        render_template('login.html')
+        return render_template('login.html')
 
 
 # delete an account by the id
@@ -142,7 +141,7 @@ def edit(id: int):
             flash(f"error{e}", "error")
             return redirect("/register")
     else:
-        return render_template("/edit")
+        return render_template("edit.html", account=account)
 
 
 # add a method to check the password confirmation
