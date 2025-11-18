@@ -10,6 +10,16 @@
 </head>
 
 <body>
+  <!-- nav bar -->
+  <nav class="navbar">
+     <div class="page-dot" title="Home"><a href="{{ url_for('home') }}"></a></div>
+     <div class="page-dot" title="Sign Up"><a href="{{ url_for('register') }}"></a></div>
+     <div class="page-dot" title="Login">
+      <a href="{{ url_for('login') }}"></a>
+    </div>
+
+  </nav>
+
   {% block content %}
   {% endblock %}
 </body>
