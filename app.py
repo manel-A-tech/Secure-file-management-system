@@ -141,6 +141,7 @@ def login():
         account = Account.query.filter_by(username=username).first()
 
         if account and check_password_hash(account.password, password):
+            login_user(account, remember=True if remember else False)
             flash("login successful", "success")
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect("/dashboard")

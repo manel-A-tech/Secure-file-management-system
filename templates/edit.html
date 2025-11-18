@@ -1,4 +1,4 @@
-{% extends 'base.html %'}
+{% extends 'base.html' %}
 {% block head %}
 <title>Edit Account - Secure Share</title>
 {% endblock %}
@@ -34,7 +34,7 @@
             <button type="submit">Update Account</button>
         </form>
 
-        <p><a href="/register">Back to accounts list</a></p>
+        <p><a href="/dashboard">Back to dashboard</a></p>
         <p><a href="/delete/{{ account.id }}">Delete Account</a></p>
     </div>
 </div>
