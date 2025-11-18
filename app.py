@@ -1,8 +1,10 @@
 from enum import unique
+from os import access
 from flask import Flask, flash, render_template, redirect, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_scss import Scss
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
@@ -11,8 +13,17 @@ app.config['SECRET_KEY'] = 'advanced programming project'
 
 db = SQLAlchemy(app)
 
+# initializing the session manager
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = "Please log in to access this page"
+login_manager.login_message_category = "error"
 
-class Account(db.Model):
+# creating the data base(inheriting the UserMixin now)
+
+
+class Account(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), nullable=False, unique=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
@@ -22,12 +33,19 @@ class Account(db.Model):
         return f"account{self.id},{self.username}"
 
 
-# checking if the account is in the database bu the id
+@login_manager.user_loader
+def load_user(userid):
+    return Account.query.get((int(userid)))
+
+# checking if the account is in the database bu the username
+
+
 def check_account_exists(username):
     account = Account.query.filter_by(username=username).first()
     if account:
         return True
     return False
+
 # encryption
 
 
@@ -51,11 +69,22 @@ def create_new_account(username, email, password):
 def home():
     return render_template('index.html')
 
+# dassboard for logged in users only(protected)
+
+
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    return render_template('dashboard.html', username=current_user.username)
+
 # registration page
 
 
 @app.route("/register", methods=["POST", "GET"])
 def register():
+    # check if already logged in
+    if current_user.is_authenticated:
+        return redirect("/dashboard")
     # add account
     if request.method == "POST":
         username = request.form.get('username')
@@ -84,49 +113,83 @@ def register():
             flash(f"error in creating the account :{e}", "error")
             return redirect("/register")
 
-    else:  # to see all accounts
-        accounts = Account.query.order_by(Account.id).all()
-        return render_template('registration.html', accounts=accounts)
+    else:  # for the get request
+        return render_template('registration.html')
+
+# to view all accounts for the admin
+
+
+@app.route("/accounts")
+@login_required
+def view_accounts():
+    accounts = Account.query.order_by(Account.id).all()
+    return render_template('accounts.html', accounts=accounts)
+
 # login page
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    # check if already logged in
+    if current_user.is_authenticated:
+        return redirect("/dashboard")
+
     if request.method == "POST":
         username = request.form.get('username')
         password = request.form.get('password')
+        remember = request.form.get('remember')
         account = Account.query.filter_by(username=username).first()
 
         if account and check_password_hash(account.password, password):
             flash("login successful", "success")
-            return redirect("/")
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect("/dashboard")
         else:
             flash("invalid username or password", "error")
             return redirect("/login")
     else:
         return render_template('login.html')
 
+# logout route
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    flash("You have been logged out successfully", "success")
+    return redirect("/login")
 
 # delete an account by the id
+
+
 @app.route("/delete/<int:id>")
+@login_required
 def delete(id: int):
+    if current_user.id != id:
+        flash("You can only delete your own account", "error")
+        return redirect("/dashboard")
     delete_account = Account.query.get_or_404(id)
     try:
         db.session.delete(delete_account)
         db.session.commit()
+        logout_user()
         flash("Account deleted successfullt", "success")
         return redirect("/register")
     except Exception as e:
         flash(f"error{e}", "error")
-        return redirect("/register")
+        return redirect("/dashboard")
 
 
 # edit an account in the database
-
 @app.route("/edit/<int:id>", methods=["GET", "POST"])
+@login_required
 def edit(id: int):
+    if current_user.id != id:
+        flash("You can only edit your own account", "error")
+        return redirect("/dashboard")
     account = Account.query.get_or_404(id)
-    if request.method == "POST":  # send information
+    if request.method == "POST":
         account.username = request.form.get('username')
         account.email = request.form.get('email')
         new_password = request.form.get('password')
@@ -135,7 +198,7 @@ def edit(id: int):
         try:
             db.session.commit()
             flash("Account updated successfully", "success")
-            return redirect("/register")
+            return redirect("/dashboard")
         except Exception as e:
             db.session.rollback()
             flash(f"error{e}", "error")

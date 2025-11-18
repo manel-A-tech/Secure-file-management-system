@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block head %}
+<title>Dashboard - Secure Share</title>
+{% end block head %}
+{% block content %}
+<div>
+    <div class="top-content">
+        <h1>Welcome, {{ username}}</h1>
+        <p>Your Secure file sharing dashboard</p>
+    </div>
+    <div class="bottom-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+
+        <h2>Your Account</h2>
+        <div class="dashboard-actions">
+            <button><a href="/edit/{{ current_user.id }}">Edit Profile</a></button>
+            <button><a href="/accounts">View All Accounts</a></button>
+            <button><a href="/logout">Logout</a></button>
+        </div>
+
+        <div class="features-section">
+            <h2>Quick Actions</h2>
+            <div class="box">
+                <h3>📁 Upload Files</h3>
+                <p> Upload and encrypt your files</p>
+            </div>
+            <div class="box">
+                <h3>📥 My Files</h3>
+                <p>View your uploaded files</p>
+            </div>
+            <div class="box">
+                <h3>🔐 Security</h3>
+                <p>Your password is encrypted and secure</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
