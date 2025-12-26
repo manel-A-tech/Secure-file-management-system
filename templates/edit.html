@@ -29,8 +29,8 @@
             <input type="email" placeholder="Email" name="email" id="email" value="{{ account.email }}" required>
 
             <h3>New Password (leave blank to keep current)</h3>
-            <input type="password" placeholder="New password (optional)" name="password" id="password">
-
+            <input type="password" placeholder="New password (optional)" name="password" id="password" minlength="8">
+            <p style="color: #666; font-size: 14px;">If changing password, it must be at least 8 characters long</p>
             <button type="submit">Update Account</button>
         </form>
 

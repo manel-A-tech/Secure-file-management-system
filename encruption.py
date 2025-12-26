@@ -6,7 +6,6 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 # generation a key (instead of the password)
 
-
 def generate_key(password: str, salt: bytes = None) -> tuple:
     if salt is None:  # to add randomness
         salt = os.urandom(16)
