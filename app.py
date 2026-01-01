@@ -2,7 +2,7 @@ from enum import unique
 from datetime import datetime, timedelta
 from os import access
 import profile
-from flask import Flask, flash, render_template, redirect, request, url_for, send_file
+from flask import Flask, flash, render_template, redirect, request, url_for, send_file, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_scss import Scss
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -18,6 +18,10 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SECRET_KEY'] = 'advanced programming project'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=2)
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
+app.config['SESSION_COOKIE_NAME'] = 'secure_share_session'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
 # email configuration:
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Simple Mail Transfer Protocol
 app.config['MAIL_PORT'] = 587  # encryption
@@ -99,7 +103,6 @@ class UploadedFile(db.Model):
 
 
 class FileShare(db.Model):
-    """Fun feature: Share files with other users"""
     id = db.Column(db.Integer, primary_key=True)
     file_id = db.Column(db.Integer, db.ForeignKey(
         'uploaded_file.id'), nullable=False)
@@ -171,27 +174,29 @@ def generate_share_code():
 
 
 def send_verification_email(email, code, username):
+    print(f"\n📧 Attempting to send email to {email}...")
     try:
         msg = Message('Verify Your Secure Share Account', recipients=[email])
         msg.body = f'''Hello {username},
 
-       Welcome to Secure Share! 🔐
+     Welcome to Secure Share! 🔐
 
-        Your verification code is: {code}
+     Your verification code is: {code}
 
-        your unique  code will expire in 15 minutes.
+     This code will expire in 15 minutes.
 
-        If you didn't create an account, please ignore this email.
+     If you didn't create an account, please ignore this email.
 
-        Best regards,
-        Secure Share Team
-        '''
+     Best regards,
+     Secure Share Team
+     '''
         mail.send(msg)
         return True
     except Exception as e:
-        print(f"Error sending email: {str(e)}")
+        print(f"❌ Error sending email: {str(e)}")
+        print(f"\n{'='*50}")
+        print(f"BACKUP - VERIFICATION CODE: {code}")
         return False
-# sent email to notify recipients with a shared file body
 
 
 def send_share_notification(recipient_email, sender_name, filename, share_code):
@@ -240,14 +245,6 @@ def get_file_category(filename):
 @app.route("/")
 def home():
     return render_template('index.html')
-
-# dassboard for logged in users only(protected)
-
-
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    return render_template('dashboard.html', username=current_user.username)
 
 # registration page
 
@@ -367,8 +364,13 @@ def login():
             if not account.is_verified:
                 flash("Please verify your email before logging in", "error")
                 return redirect(f"/verify?user_id={account.id}")
+            remember_me = True if remember == 'yes' else False
+            login_user(account, remember=remember_me)
+            if remember_me:
+                session.permanent = True
+            else:
+                session.permanent = False
 
-            login_user(account, remember=True if remember else False)
             flash("login successful", "success")
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect("/dashboard")
@@ -672,22 +674,25 @@ def edit(id: int):
         profile_color = request.form.get('profile_color')
         if profile_color:
             account.profile_color = profile_color
-
         if new_password:
             account.password = encrypt_password(new_password)
         try:
             db.session.commit()
-            flash("Account updated successfully", "success")
-            return redirect("/dashboard")
+            logout_user()
+            login_user(account)
+            flash("Account updated successfully! ✨", "success")
+            from time import time
+            return redirect(f"/dashboard?t={int(time())}")
         except Exception as e:
             db.session.rollback()
             flash(f"error{e}", "error")
             return redirect(f"/edit/{id}")
     else:
-        return render_template("edit.html", account=account)
+        return render_template("edit.html",
+                               account=account,
+                               username=account.username)
 
 
-# add a method to check the password confirmation
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
