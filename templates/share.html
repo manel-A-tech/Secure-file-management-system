@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Share File - Secure Share</title>
+{% endblock %}
+
+{% block content %}
+<div id="share" class="page active">
+    <div class="auth-container">
+        <div class="auth-left">
+            <h1>Share Securely 🎁</h1>
+            <p>Share your encrypted files with anyone via email. They'll receive a unique access code!</p>
+            <ul>
+                <li>Files remain encrypted during sharing</li>
+                <li>Set access limits and expiry dates</li>
+                <li>Track who accessed your files</li>
+                <li>Revoke access anytime</li>
+                <li>Recipients don't need an account</li>
+            </ul>
+        </div>
+
+        <div class="auth-right">
+            <h1>Share: {{ file.original_filename }}</h1>
+            <p>Configure sharing settings for this file</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <form action="/share/{{ file.id }}" method="POST">
+                <div class="form-grp">
+                    <label>📧 Recipient Email</label>
+                    <input type="email" placeholder="recipient@example.com" name="recipient_email" id="recipient_email"
+                        required>
+                </div>
+
+                <div class="form-grp">
+                    <label>🔢 Maximum Access Count</label>
+                    <select name="max_access" id="max_access">
+                        <option value="1">1 time</option>
+                        <option value="5" selected>5 times</option>
+                        <option value="10">10 times</option>
+                        <option value="25">25 times</option>
+                        <option value="100">100 times</option>
+                    </select>
+                </div>
+
+                <div class="form-grp">
+                    <label>⏰ Expires After</label>
+                    <select name="expiry_days" id="expiry_days">
+                        <option value="1">1 day</option>
+                        <option value="7" selected>7 days</option>
+                        <option value="14">14 days</option>
+                        <option value="30">30 days</option>
+                        <option value="90">90 days</option>
+                    </select>
+                </div>
+
+                <div class="form-grp">
+                    <button type="submit" class="create-account-btn">🎁 Generate Share Link</button>
+                </div>
+            </form>
+
+            <div class="auth-footer">
+                <p><a href="/dashboard">← Back to Dashboard</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    select {
+        width: 100%;
+        padding: 12px 15px;
+        background: rgba(255, 255, 255, 0.03);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    select:focus {
+        outline: none;
+        border-color: #00ffc2;
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 0 0 3px rgba(0, 255, 194, 0.1);
+    }
+</style>
+{% endblock %}

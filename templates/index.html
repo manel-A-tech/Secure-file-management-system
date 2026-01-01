@@ -1,49 +1,259 @@
 {% extends 'base.html' %}{% block head %}
 <title>Secure Share - Home</title>
+<style>
+  .home-container {
+    min-height: 1000px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .home-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(circle at 20% 50%, rgba(0, 255, 194, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+
+  }
+
+  .home-content {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+  }
+
+  .home-content h1 {
+    font-size: 72px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #00ffc2 0%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 20px;
+    animation: fadeInDown 0.8s ease;
+  }
+
+  @keyframes fadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .tagline {
+    font-size: 28px;
+    color: #e5e5e5;
+    margin-bottom: 20px;
+    animation: fadeIn 1s ease 0.3s both;
+  }
+
+  .subtitle {
+    font-size: 18px;
+    color: #e5e5e5;
+    margin-bottom: 40px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+    animation: fadeIn 1s ease 0.5s both;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  .user-info {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px 30px;
+    margin-bottom: 30px;
+    animation: fadeIn 1s ease 0.7s both;
+  }
+
+  .user-info p {
+    font-size: 18px;
+    color: #00ffc2;
+    margin: 0;
+  }
+
+  .cta-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 60px;
+    animation: fadeIn 1s ease 0.9s both;
+  }
+
+  .user-btns {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 60px;
+    animation: fadeIn 1s ease 0.9s both;
+  }
+
+  .user-btn {
+    padding: 16px 40px;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .user-btn a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .first-btn {
+    background: linear-gradient(135deg, #00ffc2 0%, #38bdf8 100%);
+    color: #0a0a0a;
+    box-shadow: 0 4px 20px rgba(0, 255, 194, 0.3);
+  }
+
+  .first-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(0, 255, 194, 0.5);
+  }
+
+  .second-btn {
+    background: rgba(255, 255, 255, 0.05);
+    color: #e5e5e5;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .second-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #00ffc2;
+    transform: translateY(-3px);
+  }
+
+  .features-section {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    animation: fadeIn 1s ease 1.1s both;
+  }
+
+  .box {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 40px 30px;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .box:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-10px);
+    box-shadow: 0 15px 50px rgba(0, 255, 194, 0.2);
+    border-color: rgba(0, 255, 194, 0.3);
+  }
+
+  .feature-icon {
+    font-size: 56px;
+    margin-bottom: 20px;
+  }
+
+  .box h3 {
+    font-size: 24px;
+    color: #00ffc2;
+    margin-bottom: 15px;
+  }
+
+  .box p {
+    color: #e5e5e5;
+    line-height: 1.6;
+    font-size: 16px;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<div>
- <h1>
-   SecureShare
- </h1>
- {% if current_user.is_authenticated %}
-    <p>Welcome back, {{ current_user.username }}!</p>
-    <button><a href="/dashboard">Go to Dashboard</a></button>
-    <button><a href="/logout">Logout</a></button>
+<div class="home-container">
+  <div class="home-content">
+    <h1>
+      🔐 SecureShare
+    </h1>
+  </div>
+  {% if current_user.is_authenticated %}
+  <div class="user-info">
+    <p> 👋 Welcome back, <strong>{{ current_user.username }}!</strong></p>
+  </div>
+  <div class="user-btns">
+    <button class="user-btn first-btn"><a href="/dashboard">Go to Dashboard</a></button>
+    <button class="user-btn second-btn"><a href="/logout">Logout</a></button>
+  </div>
   {% else %}
-    <button><a href="/register">Sign Up</a></button>
-    <button><a href="/login">Login</a></button>
+  <h2 class="tagline">Share Files Securely</h2>
+  <p class="subtitle">
+    Your files are encrypted and protected. Upload, share, and download with complete peace of mind using military-grade
+    encryption.
+  </p>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+  {% endif %}
+  {% endwith %}
+  <div class="user-btns">
+    <button class="user-btn first-btn"><a href="/register">🚀 Sign Up</a></button>
+    <button class="user-btn second-btn"><a href="/login">🔑 Login</a></button>
+  </div>
   {% endif %}
 
 
- <div>
-   <h1>Share Files Securely</h1>
-   <p>Your files are encrypted and protected. Upload, share, and download with complete peace of mind.</p>
-   {% with messages = get_flashed_messages(with_categories=true) %}
-     {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-   {% endwith %}
-   <div>
+  <div class="features-section">
     <div class="box">
+      <div class="feature-icon">🔒</div>
       <h3>Always Encrypted</h3>
       <p>Your files are encrypted before upload and only you can access them</p>
     </div>
     <div class="box">
+      <div class="feature-icon">🛡️</div>
       <h3>Secure Storage</h3>
       <p>Your password is safely stored and protected from hackers</p>
     </div>
     <div class="box">
+      <div class="feature-icon">⚡</div>
       <h3>Easy to Use</h3>
       <p>Simple upload and download process with no complicated setup</p>
     </div>
   </div>
-</div>
 
-
-
-
-{% endblock %}
+  {% endblock %}

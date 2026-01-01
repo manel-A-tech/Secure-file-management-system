@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Verify Email - Secure Share</title>
+{% endblock %}
+
+{% block content %}
+<div id="verify" class="page active">
+  <div class="auth-container">
+    <div class="auth-left">
+      <h1>Email Verification</h1>
+      <p>We've sent a 6-digit verification code to your email address.</p>
+      <ul>
+        <li>Check your inbox for the verification email</li>
+        <li>Enter the 6-digit code below</li>
+        <li>Code expires in 15 minutes</li>
+        <li>Didn't receive it? Check spam folder</li>
+      </ul>
+    </div>
+    
+    <div class="auth-right">
+      <h1>Enter Verification Code</h1>
+      <p>Please enter the code sent to your email</p>
+      
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      
+      <form action="/verify" method="POST">
+        <input type="hidden" name="user_id" value="{{ user_id }}">
+        
+        <div class="form-grp">
+          <label>Verification Code</label>
+          <input 
+            type="text" 
+            placeholder="Enter 6-digit code" 
+            name="verification_code" 
+            id="verification_code"
+            maxlength="6"
+            pattern="\d{6}"
+            required
+            style="text-align: center; font-size: 24px; letter-spacing: 8px;">
+        </div>
+        
+        <div class="form-grp">
+          <button type="submit" class="create-account-btn">Verify Email</button>
+        </div>
+      </form>
+      
+      <div class="auth-footer">
+        <p>Didn't receive the code? <a href="/resend-code/{{ user_id }}">Resend Code</a></p>
+        <p><a href="/register">Back to Registration</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

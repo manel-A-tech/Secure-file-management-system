@@ -6,13 +6,14 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 # generation a key (instead of the password)
 
+
 def generate_key(password: str, salt: bytes = None) -> tuple:
     if salt is None:  # to add randomness
         salt = os.urandom(16)
     # specify the key derivation function
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32,
                      salt=salt, iterations=100000)
-    key = base64.urlsafe_b64decode(kdf.derive(
+    key = base64.urlsafe_b64encode(kdf.derive(
         password.encode()))  # convert to ascii
     return key, salt
 # encrypting the data in the file to store it
