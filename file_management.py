@@ -1,6 +1,7 @@
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
+import hashlib
 
 class FileManager:
   def __init__(self , upload_folder):
@@ -82,6 +83,53 @@ class FileManager:
     if '.' in filename:
       return filename.rsplit('.', 1)[1].lower()
     return ''
+  
+
+  def hash_file_sha256(self, file_data: bytes) -> str:
+    """
+    Generate SHA-256 hash of file data.
+    Most commonly used for file integrity verification.
+    Returns the hash as a hexadecimal string.
+    """
+    return hashlib.sha256(file_data).hexdigest()
+
+  def hash_file_md5(self, file_data: bytes) -> str:
+    """
+    Generate MD5 hash of file data.
+    Faster than SHA-256 but less secure.
+    Returns the hash as a hexadecimal string.
+    """
+    return hashlib.md5(file_data).hexdigest()
+
+  def hash_file_sha512(self, file_data: bytes) -> str:
+    """
+    Generate SHA-512 hash of file data.
+    More secure than SHA-256 but slower.
+    Returns the hash as a hexadecimal string.
+    """
+    return hashlib.sha512(file_data).hexdigest()
+
+  def verify_file_integrity(self, file_data: bytes, expected_hash: str, algorithm: str = 'sha256') -> bool:
+    """
+    Verify file integrity by comparing its hash with an expected hash.
+    
+    Args:
+        file_data: The file data as bytes
+        expected_hash: The expected hash string
+        algorithm: The hashing algorithm to use ('sha256', 'md5', or 'sha512')
+    
+    Returns True if hashes match, False otherwise.
+    """
+    if algorithm == 'sha256':
+        calculated_hash = self.hash_file_sha256(file_data)
+    elif algorithm == 'md5':
+        calculated_hash = self.hash_file_md5(file_data)
+    elif algorithm == 'sha512':
+        calculated_hash = self.hash_file_sha512(file_data)
+    else:
+        raise ValueError(f"Unsupported algorithm: {algorithm}")
+    
+    return calculated_hash == expected_hash
 
     
 

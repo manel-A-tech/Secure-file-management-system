@@ -13,6 +13,7 @@ import os
 import random
 import string
 from flask_mail import Mail, Message
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
@@ -37,6 +38,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16mg
 
 db = SQLAlchemy(app)
 mail = Mail(app)
+migrate = Migrate(app, db)
 
 # ensure upload folder exists(temporary, if we buy a server the upload is going to be in it)
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
@@ -96,10 +98,12 @@ class UploadedFile(db.Model):
     category = db.Column(db.String(50), default='other')
     shares = db.relationship('FileShare', backref='file',
                              lazy=True, cascade='all, delete-orphan')
+    file_hash = db.Column(db.String(64), nullable=True)  
 
     def __repr__(self) -> str:
         return f"File: {self.original_filename}"
 # create database for shared files
+   
 
 
 class FileShare(db.Model):
@@ -444,6 +448,9 @@ def upload_file():
             flash("File size exceeds 16MB limit", "error")
             return redirect("/dashboard")
 
+        # Calculate SHA-256 hash for integrity verification
+        file_hash = file_manager.hash_file_sha256(file_data)
+
         encrypted_data, salt = encrypt_file(file_data, current_user.password)
         unique_filename = file_manager.generate_unique_filename(
             current_user.id, file.filename)
@@ -457,7 +464,8 @@ def upload_file():
             stored_filename=unique_filename,
             file_size=file_manager.format_file_size(file_size),
             salt=salt_encoded,
-            category=category
+            category=category,
+            file_hash=file_hash  # Store the hash for integrity checking
         )
         db.session.add(new_file)
         db.session.commit()
@@ -485,6 +493,16 @@ def download_file(file_id):
         salt = decode_salt(file_record.salt)
         decrypted_data = decrypt_file(
             encrypted_data, current_user.password, salt)
+        
+        # Silent integrity verification - no user notification unless logging
+        if file_record.file_hash:
+            current_hash = file_manager.hash_file_sha256(decrypted_data)
+            if current_hash != file_record.file_hash:
+                # Log the integrity failure for admin/developer review
+                print(f" Integrity check failed for file ID {file_id}")
+                # Continue with download despite integrity issue
+                # (You could choose to abort here if you want strict validation)
+        
         temp_path = file_manager.creat_temp_file(
             decrypted_data, file_record.original_filename)
         file_record.download_count += 1
@@ -496,7 +514,6 @@ def download_file(file_id):
     except Exception as e:
         flash(f"Error downloading file: {str(e)}", "error")
         return redirect("/dashboard")
-
 # deleting a file
 
 
@@ -614,6 +631,13 @@ def access_shared():
                 file_record.stored_filename)
             salt = decode_salt(file_record.salt)
             decrypted_data = decrypt_file(encrypted_data, owner.password, salt)
+            
+            # integrity verification for shared files
+            if file_record.file_hash:
+                current_hash = file_manager.hash_file_sha256(decrypted_data)
+                if current_hash != file_record.file_hash:
+                    print(f" Integrity check failed for shared file ID {share.file_id}")
+            
             temp_path = file_manager.creat_temp_file(
                 decrypted_data, file_record.original_filename)
             flash(f"Shared file accessed successfully!", "success")
@@ -621,7 +645,7 @@ def access_shared():
                              as_attachment=True,
                              download_name=file_record.original_filename)
         except Exception as e:
-            flash(f"Error eccessing file: {str(e)}", "error")
+            flash(f"Error accessing file: {str(e)}", "error")
             return render_template('access_shared.html')
     return render_template('access_shared.html')
 
