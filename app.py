@@ -14,6 +14,7 @@ import random
 import string
 from flask_mail import Mail, Message
 from flask_migrate import Migrate
+import secrets
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
@@ -125,6 +126,64 @@ class FileShare(db.Model):
     def __repr__(self) -> str:
         return f"Share: {self.share_code}"
 
+# Collaborative folder model
+class CollabFolder(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(255), nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('account.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    is_public = db.Column(db.Boolean, default=False)
+    # Relationships
+    members = db.relationship('CollabMember', backref='folder', lazy=True, cascade='all, delete-orphan')
+    files = db.relationship('CollabFile', backref='folder', lazy=True, cascade='all, delete-orphan')
+    creator = db.relationship('Account', foreign_keys=[created_by])
+    
+    def __repr__(self):
+        return f"CollabFolder: {self.name}"
+    
+# Folder membership model
+class CollabMember(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    folder_id = db.Column(db.Integer, 
+                         db.ForeignKey('collab_folder.id', name='fk_collab_member_folder'), 
+                         nullable=False)
+    user_id = db.Column(db.Integer, 
+                       db.ForeignKey('account.id', name='fk_collab_member_user'), 
+                       nullable=False)
+    role = db.Column(db.String(20), default='viewer')
+    joined_at = db.Column(db.DateTime, default=datetime.now)
+    
+    # New columns for invitations
+    invite_token = db.Column(db.String(32), unique=True, nullable=True)
+    invite_status = db.Column(db.String(20), default='pending')
+    invited_at = db.Column(db.DateTime, default=datetime.now)
+    invited_by = db.Column(db.Integer, 
+                          db.ForeignKey('account.id', name='fk_collab_member_invited_by'), 
+                          nullable=True)
+
+    # Relationships
+    user = db.relationship('Account', foreign_keys=[user_id], backref='collaborations')
+    inviter = db.relationship('Account', foreign_keys=[invited_by], backref='sent_invitations')
+
+# Collaborative files model
+class CollabFile(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    folder_id = db.Column(db.Integer, db.ForeignKey('collab_folder.id'), nullable=False)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('account.id'), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    stored_filename = db.Column(db.String(255), nullable=False)
+    file_size = db.Column(db.String(50), nullable=False)
+    salt = db.Column(db.String(255), nullable=False)
+    upload_date = db.Column(db.DateTime, default=datetime.now)
+    download_count = db.Column(db.Integer, default=0)
+    category = db.Column(db.String(50), default='other')
+    file_hash = db.Column(db.String(64), nullable=True)
+    # Relationships
+    uploader = db.relationship('Account', foreign_keys=[uploaded_by])
+    
+    def __repr__(self):
+        return f"CollabFile: {self.original_filename}"
 
 @login_manager.user_loader
 def load_user(userid):
@@ -240,6 +299,55 @@ def get_file_category(filename):
         if extension in extensions:
             return category
     return 'other'
+
+# Check if user has access to folder
+def user_has_folder_access(user_id, folder_id, required_role=None):
+    member = CollabMember.query.filter_by(
+        user_id=user_id, 
+        folder_id=folder_id
+    ).first()
+    
+    if not member:
+        return False
+    
+    if required_role:
+        role_hierarchy = {'viewer': 1, 'editor': 2, 'owner': 3}
+        return role_hierarchy.get(member.role, 0) >= role_hierarchy.get(required_role, 0)
+    
+    return True
+
+def generate_invite_token():
+    """Generate a secure random token for invitations"""
+    return secrets.token_urlsafe(24)
+
+# Send collaboration invite email
+def send_collab_invite(recipient_email, folder_name, sender_name, invite_link):
+    """Send invitation link instead of code"""
+    try:
+        msg = Message('You\'ve been invited to collaborate!', 
+                     recipients=[recipient_email])
+        msg.html = f'''
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <h2>🤝 Collaboration Invitation</h2>
+            <p>Hello!</p>
+            <p><strong>{sender_name}</strong> has invited you to collaborate on the folder: <strong>"{folder_name}"</strong></p>
+            <div style="background: #f5f5f5; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                <p>Click the link below to accept or decline the invitation:</p>
+                <a href="{invite_link}" style="display: inline-block; background: #00ffc2; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px 0;">
+                    🔗 View Invitation
+                </a>
+                <p style="font-size: 12px; color: #666;">This link will expire in 7 days.</p>
+            </div>
+            <p>Best regards,<br>Secure Share Team</p>
+        </body>
+        </html>
+        '''
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Error sending invite: {str(e)}")
+        return False
 
 ############################ ROUTES######################
 
@@ -652,11 +760,11 @@ def access_shared():
 # access accounts
 
 
-@app.route("/accounts")
-@login_required
-def view_accounts():
-    accounts = Account.query.order_by(Account.id).all()
-    return render_template('accounts.html', accounts=accounts)
+#@app.route("/accounts")
+#@login_required
+#def view_accounts():
+    #accounts = Account.query.order_by(Account.id).all()
+    #return render_template('accounts.html', accounts=accounts)
 
 # delete an account by the id
 
@@ -715,7 +823,453 @@ def edit(id: int):
         return render_template("edit.html",
                                account=account,
                                username=account.username)
+    
 
+# collaboration feature 
+
+# View all collaborative folders
+@app.route("/collaborations")
+@login_required
+def collaborations():
+    # Folders where user is a member
+    my_collabs = CollabMember.query.filter_by(user_id=current_user.id).all()
+    folders = [collab.folder for collab in my_collabs]
+    
+    return render_template('collaborations.html', 
+                         folders=folders,
+                         username=current_user.username,
+                         profile_color=current_user.profile_color)
+
+# Create new collaborative folder
+@app.route("/collab/create", methods=["POST"])
+@login_required
+def create_collab_folder():
+    name = request.form.get('folder_name')
+    description = request.form.get('description', '')
+    is_public = request.form.get('is_public') == 'on'
+    
+    if not name:
+        flash("Folder name is required", "error")
+        return redirect("/collaborations")
+    
+    try:
+        new_folder = CollabFolder(
+            name=name,
+            description=description,
+            created_by=current_user.id,
+            is_public=is_public
+        )
+        db.session.add(new_folder)
+        db.session.flush()
+        
+        # Add creator as owner
+        creator_member = CollabMember(
+            folder_id=new_folder.id,
+            user_id=current_user.id,
+            role='owner'
+        )
+        db.session.add(creator_member)
+        db.session.commit()
+        
+        flash(f"Folder '{name}' created successfully! 📁", "success")
+        return redirect("/collaborations")
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error creating folder: {str(e)}", "error")
+        return redirect("/collaborations")
+
+# View specific collaborative folder
+@app.route("/collab/<int:folder_id>")
+@login_required
+def view_collab_folder(folder_id):
+    folder = CollabFolder.query.get_or_404(folder_id)
+    
+    if not user_has_folder_access(current_user.id, folder_id):
+        flash("You don't have access to this folder", "error")
+        return redirect("/collaborations")
+    
+    # Get user's role
+    member = CollabMember.query.filter_by(
+        user_id=current_user.id,
+        folder_id=folder_id
+    ).first()
+    
+    files = CollabFile.query.filter_by(folder_id=folder_id).order_by(
+        CollabFile.upload_date.desc()
+    ).all()
+    
+    members = CollabMember.query.filter_by(folder_id=folder_id).all()
+    
+    return render_template('collaborations.html',
+                         folder=folder,
+                         files=files,
+                         members=members,
+                         user_role=member.role,
+                         username=current_user.username,
+                         profile_color=current_user.profile_color)
+
+# Upload file to collaborative folder
+@app.route("/collab/<int:folder_id>/upload", methods=["POST"])
+@login_required
+def upload_collab_file(folder_id):
+    folder = CollabFolder.query.get_or_404(folder_id)
+    
+    if not user_has_folder_access(current_user.id, folder_id, 'editor'):
+        flash("You don't have permission to upload files", "error")
+        return redirect(f"/collab/{folder_id}")
+    
+    if 'file' not in request.files:
+        flash("No file selected", "error")
+        return redirect(f"/collab/{folder_id}")
+    
+    file = request.files['file']
+    if file.filename == '':
+        flash("No file selected", "error")
+        return redirect(f"/collab/{folder_id}")
+    
+    try:
+        file_data = file.read()
+        file_size = len(file_data)
+        
+        if not file_manager.is_file_size_valid(file_size):
+            flash("File size exceeds 16MB limit", "error")
+            return redirect(f"/collab/{folder_id}")
+        
+        file_hash = file_manager.hash_file_sha256(file_data)
+        
+        # Use folder creator's password for encryption
+        creator = Account.query.get(folder.created_by)
+        encrypted_data, salt = encrypt_file(file_data, creator.password)
+        
+        unique_filename = file_manager.generate_unique_filename(
+            folder_id, file.filename
+        )
+        file_manager.save_encrypted_file(encrypted_data, unique_filename)
+        
+        salt_encoded = encode_salt(salt)
+        category = get_file_category(file.filename)
+        
+        new_file = CollabFile(
+            folder_id=folder_id,
+            uploaded_by=current_user.id,
+            original_filename=file.filename,
+            stored_filename=unique_filename,
+            file_size=file_manager.format_file_size(file_size),
+            salt=salt_encoded,
+            category=category,
+            file_hash=file_hash
+        )
+        
+        db.session.add(new_file)
+        db.session.commit()
+        
+        flash(f"File '{file.filename}' uploaded successfully! 📤", "success")
+        return redirect("/collaborations#folder-" + str(folder_id))  # Scroll to folder
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error uploading file: {str(e)}", "error")
+        return redirect("/collaborations#folder-" + str(folder_id))
+
+# Download file from collaborative folder
+@app.route("/collab/<int:folder_id>/download/<int:file_id>")
+@login_required
+def download_collab_file(folder_id, file_id):
+    if not user_has_folder_access(current_user.id, folder_id):
+        flash("You don't have access to this folder", "error")
+        return redirect("/collaborations")
+    
+    file_record = CollabFile.query.get_or_404(file_id)
+    folder = CollabFolder.query.get(folder_id)
+    
+    try:
+        encrypted_data = file_manager.read_ecrypted_file(file_record.stored_filename)
+        salt = decode_salt(file_record.salt)
+        
+        # Use folder creator's password for decryption
+        creator = Account.query.get(folder.created_by)
+        decrypted_data = decrypt_file(encrypted_data, creator.password, salt)
+        
+        if file_record.file_hash:
+            current_hash = file_manager.hash_file_sha256(decrypted_data)
+            if current_hash != file_record.file_hash:
+                print(f"⚠️ Integrity check failed for collab file ID {file_id}")
+        
+        temp_path = file_manager.creat_temp_file(
+            decrypted_data, file_record.original_filename
+        )
+        
+        file_record.download_count += 1
+        db.session.commit()
+        
+        return send_file(temp_path,
+                        as_attachment=True,
+                        download_name=file_record.original_filename)
+        
+    except Exception as e:
+        flash(f"Error downloading file: {str(e)}", "error")
+        return redirect(f"/collab/{folder_id}")
+
+# Invite member to folder
+@app.route("/collab/<int:folder_id>/invite", methods=["POST"])
+@login_required
+def invite_collab_member(folder_id):
+    folder = CollabFolder.query.get_or_404(folder_id)
+    
+    if not user_has_folder_access(current_user.id, folder_id, 'owner'):
+        flash("Only owners can invite members", "error")
+        return redirect(f"/collab/{folder_id}")
+    
+    email = request.form.get('member_email')
+    role = request.form.get('role', 'viewer')
+    
+    if not email:
+        flash("Email is required", "error")
+        return redirect(f"/collab/{folder_id}")
+    
+    # Check if user exists
+    invited_user = Account.query.filter_by(email=email).first()
+    
+    if not invited_user:
+        flash("User with this email doesn't exist", "error")
+        return redirect(f"/collab/{folder_id}")
+    
+    # Check if already a member
+    existing_member = CollabMember.query.filter_by(
+        folder_id=folder_id,
+        user_id=invited_user.id
+    ).first()
+    
+    if existing_member:
+        if existing_member.invite_status == 'pending':
+            flash("Invitation is already pending for this user", "warning")
+        else:
+            flash("User is already a member of this folder", "error")
+        return redirect(f"/collab/{folder_id}")
+    
+    try:
+        # Generate unique invite token
+        invite_token = generate_invite_token()
+        
+        # Create invitation record
+        invitation = CollabMember(
+            folder_id=folder_id,
+            user_id=invited_user.id,
+            role=role,
+            invite_token=invite_token,
+            invite_status='pending',
+            invited_by=current_user.id
+        )
+        
+        db.session.add(invitation)
+        db.session.commit()
+        
+        # Generate invite link
+        invite_link = url_for('view_invitation', token=invite_token, _external=True)
+        
+        # Send email with link
+        send_collab_invite(
+            email, 
+            folder.name, 
+            current_user.username, 
+            invite_link
+        )
+        
+        flash(f"Invitation sent to {email}! They'll receive a link to accept. 📧", "success")
+        
+        # Stay on the same page (use the referrer)
+        referrer = request.referrer or url_for('view_collab_folder', folder_id=folder_id)
+        return redirect(f"{referrer}#folder-{folder_id}")
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error inviting member: {str(e)}", "error")
+        return redirect(f"/collab/{folder_id}")
+
+# Remove member from folder
+@app.route("/collab/<int:folder_id>/remove/<int:member_id>", methods=["POST"])
+@login_required
+def remove_collab_member(folder_id, member_id):
+    if not user_has_folder_access(current_user.id, folder_id, 'owner'):
+        flash("Only owners can remove members", "error")
+        return redirect(f"/collab/{folder_id}")
+    
+    member = CollabMember.query.get_or_404(member_id)
+    
+    if member.role == 'owner' and member.user_id != current_user.id:
+        flash("Cannot remove other owners", "error")
+        return redirect(f"/collab/{folder_id}")
+    
+    try:
+        db.session.delete(member)
+        db.session.commit()
+        flash("Member removed successfully", "success")
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error removing member: {str(e)}", "error")
+    
+    return redirect("/collaborations#folder-" + str(folder_id))
+
+# Delete collaborative folder
+@app.route("/collab/<int:folder_id>/delete", methods=["POST"])
+@login_required
+def delete_collab_folder(folder_id):
+    folder = CollabFolder.query.get_or_404(folder_id)
+    
+    if not user_has_folder_access(current_user.id, folder_id, 'owner'):
+        flash("Only owners can delete folders", "error")
+        return redirect("/collaborations")
+    
+    try:
+        # Delete all files in the folder
+        files = CollabFile.query.filter_by(folder_id=folder_id).all()
+        for file in files:
+            file_manager.delete_file(file.stored_filename)
+        
+        db.session.delete(folder)
+        db.session.commit()
+        
+        flash(f"Folder '{folder.name}' deleted successfully! 🗑️", "success")
+        return redirect("/collaborations")
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting folder: {str(e)}", "error")
+        return redirect("/collaborations")
+    
+#  route for leaving a collaboration
+@app.route("/collab/<int:folder_id>/leave", methods=["POST"])
+@login_required
+def leave_collab_folder(folder_id):
+    folder = CollabFolder.query.get_or_404(folder_id)
+    
+    # Find the current user's membership
+    member = CollabMember.query.filter_by(
+        folder_id=folder_id,
+        user_id=current_user.id
+    ).first()
+    
+    if not member:
+        flash("You are not a member of this folder", "error")
+        return redirect("/collaborations")
+    
+    # Prevent the last owner from leaving
+    owner_count = CollabMember.query.filter_by(
+        folder_id=folder_id,
+        role='owner'
+    ).count()
+    
+    if member.role == 'owner' and owner_count <= 1:
+        flash("You are the only owner. Please delete the folder or assign another owner first.", "error")
+        return redirect("/collaborations")
+    
+    try:
+        db.session.delete(member)
+        db.session.commit()
+        flash(f"You have left '{folder.name}' successfully", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error leaving folder: {str(e)}", "error")
+    
+    return redirect("/collaborations")
+
+@app.route("/invite/<token>")
+def view_invitation(token):
+    """View invitation page (accessible without login)"""
+    invitation = CollabMember.query.filter_by(invite_token=token).first()
+    
+    if not invitation:
+        flash("Invalid or expired invitation link", "error")
+        return redirect("/")
+    
+    if invitation.invite_status != 'pending':
+        flash("This invitation has already been processed", "info")
+        return redirect("/")
+    
+    # Check if invitation expired (7 days)
+    if datetime.now() > invitation.invited_at + timedelta(days=7):
+        flash("This invitation has expired", "error")
+        return redirect("/")
+    
+    folder = CollabFolder.query.get(invitation.folder_id)
+    inviter = Account.query.get(invitation.invited_by)
+    
+    return render_template('view_invitation.html',
+                         invitation=invitation,
+                         folder=folder,
+                         inviter=inviter,
+                         token=token)
+
+@app.route("/invite/<token>/accept", methods=["POST"])
+def accept_invitation(token):
+    """Accept an invitation"""
+    invitation = CollabMember.query.filter_by(invite_token=token).first()
+    
+    if not invitation:
+        flash("Invalid or expired invitation", "error")
+        return redirect("/")
+    
+    # Check if user is logged in
+    if not current_user.is_authenticated:
+        # Store the token in session and redirect to login
+        session['pending_invite_token'] = token
+        return redirect(url_for('login', next=url_for('view_invitation', token=token)))
+    
+    # Verify this is the correct user
+    if invitation.user_id != current_user.id:
+        flash("This invitation is not for you", "error")
+        return redirect("/collaborations")
+    
+    if invitation.invite_status != 'pending':
+        flash("This invitation has already been processed", "info")
+        return redirect("/collaborations")
+    
+    try:
+        invitation.invite_status = 'accepted'
+        invitation.invite_token = None
+        invitation.joined_at = datetime.now()
+        db.session.commit()
+        
+        flash(f"You've joined '{invitation.folder.name}' successfully! 🎉", "success")
+        return redirect("/collaborations")
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error accepting invitation: {str(e)}", "error")
+        return redirect("/collaborations")
+
+@app.route("/invite/<token>/decline", methods=["POST"])
+def decline_invitation(token):
+    """Decline an invitation"""
+    invitation = CollabMember.query.filter_by(invite_token=token).first()
+    
+    if not invitation:
+        flash("Invalid or expired invitation", "error")
+        return redirect("/")
+    
+    # Similar logic for decline
+    if not current_user.is_authenticated:
+        session['pending_invite_token'] = token
+        return redirect(url_for('login', next=url_for('view_invitation', token=token)))
+    
+    if invitation.user_id != current_user.id :
+        flash("This invitation is not for you", "error")
+        return redirect("/collaborations")
+    
+    try:
+        invitation.invite_status = 'rejected'
+        db.session.commit()
+        
+        flash("Invitation declined", "info")
+        return redirect("/collaborations")
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error declining invitation: {str(e)}", "error")
+        return redirect("/collaborations")
+    
 
 if __name__ == "__main__":
     with app.app_context():
