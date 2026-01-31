@@ -70,7 +70,7 @@ class Account(UserMixin, db.Model):
     # stores the exact date/time when the code expires
     code_expiry = db.Column(db.DateTime, nullable=True)
     # stores users chosen color for their profile
-    profile_color = db.Column(db.String(7), default='#00ffc2')
+    #profile_color = db.Column(db.String(7), default='#00ffc2')
     # stores user's theme preference
     theme = db.Column(db.String(10), default='dark')
     # creates a link between Account and UploadedFile tables
@@ -211,13 +211,13 @@ def create_new_account(username, email, password):
     encrypted_pass = encrypt_password(password)
     verification_code = generate_verification_code()
     code_expiry = datetime.now() + timedelta(minutes=15)
-    # random profile color
-    colors = ['#00ffc2', '#38bdf8', '#f59e0b', '#ec4899', '#8b5cf6', '#10b981']
-
+   
     new_account = Account(username=username, email=email,
                           password=encrypted_pass, is_verified=False,
-                          verification_code=verification_code, code_expiry=code_expiry,
-                          profile_color=random.choice(colors))
+                          verification_code=verification_code, 
+                          code_expiry=code_expiry
+                          )
+                         
     db.session.add(new_account)
     db.session.commit()
     send_verification_email(email, verification_code, username)
@@ -531,8 +531,7 @@ def dashboard():
                            files=files,
                            total_files=total_files,
                            total_downloads=total_downloads,
-                           favorite_count=favorite_count,
-                           profile_color=current_user.profile_color)
+                           favorite_count=favorite_count)
 
 # uploading a file
 
@@ -803,9 +802,6 @@ def edit(id: int):
         account.username = request.form.get('username')
         account.email = request.form.get('email')
         new_password = request.form.get('password')
-        profile_color = request.form.get('profile_color')
-        if profile_color:
-            account.profile_color = profile_color
         if new_password:
             account.password = encrypt_password(new_password)
         try:

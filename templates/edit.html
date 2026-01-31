@@ -2,15 +2,7 @@
 {% block head %}
 <title>Edit Profile - Secure Share</title>
 <style>
-    :root {
-        --profile-color: {
-                {
-                account.profile_color|default('#00ffc2')
-            }
-        }
-
-        ;
-    }
+   
 
     .edit-container {
         max-width: 800px;
@@ -70,7 +62,7 @@
 
     .form-grp label {
         display: block;
-        color: #b0b0b0;
+        color: #fffafa;
         font-size: 14px;
         font-weight: bold;
         margin-bottom: 8px;
@@ -94,40 +86,8 @@
         box-shadow: 0 0 0 3px rgba(0, 255, 194, 0.1);
     }
 
-    .color-picker-section {
-        display: flex;
-        gap: 20px;
-        align-items: center;
-        padding: 20px;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 12px;
-        margin-bottom: 20px;
-    }
 
-    .color-options {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
 
-    .color-option {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        cursor: pointer;
-        border: 3px solid transparent;
-        transition: all 0.3s ease;
-    }
-
-    .color-option:hover {
-        transform: scale(1.1);
-        border-color: #ffffff;
-    }
-
-    .color-option.selected {
-        border-color: #ffffff;
-        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
-    }
 
     .action-buttons {
         display: flex;
@@ -224,30 +184,7 @@
                 <input type="email" name="email" id="email" value="{{ account.email }}" required>
             </div>
         </div>
-        <div class="form-section">
-            <h3>🎨 Profile Color</h3>
-
-            <div class="color-picker-section">
-                <div style="width: 100%;">
-                    <label style="margin-bottom: 10px;">Choose your color:</label>
-                    <div class="color-options">
-                        <div class="color-option" style="background: #00ffc2;" data-color="#00ffc2"
-                            onclick="selectColor('#00ffc2')"></div>
-                        <div class="color-option" style="background: #38bdf8;" data-color="#38bdf8"
-                            onclick="selectColor('#38bdf8')"></div>
-                        <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b"
-                            onclick="selectColor('#f59e0b')"></div>
-                        <div class="color-option" style="background: #ec4899;" data-color="#ec4899"
-                            onclick="selectColor('#ec4899')"></div>
-                        <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6"
-                            onclick="selectColor('#8b5cf6')"></div>
-                        <div class="color-option" style="background: #10b981;" data-color="#10b981"
-                            onclick="selectColor('#10b981')"></div>
-                    </div>
-                    <input type="hidden" name="profile_color" id="profile_color" value="{{ account.profile_color }}">
-                </div>
-            </div>
-        </div>
+        
         <div class="form-section">
             <h3>🔒 Change Password</h3>
 
@@ -284,37 +221,6 @@
 </div>
 
 <script>
-    // Set initial selected color
-    document.addEventListener('DOMContentLoaded', function () {
-        const currentColor = '{{ account.profile_color }}';
-        selectColor(currentColor);
-    });
-
-    function selectColor(color) {
-        // Remove selected class from all options
-        document.querySelectorAll('.color-option').forEach(opt => {
-            opt.classList.remove('selected');
-        });
-
-        // Add selected class to clicked option
-        const element = document.querySelector(`[data-color="${color}"]`);
-        if (element) {
-            element.classList.add('selected');
-        }
-
-        // Update hidden input
-        document.getElementById('profile_color').value = color;
-
-        // Update avatar preview
-        const avatarPreview = document.getElementById('avatar-preview');
-        if (avatarPreview) {
-            avatarPreview.style.background = color;
-        }
-
-        // Update CSS variable in real-time
-        document.documentElement.style.setProperty('--profile-color', color);
-    }
-
     function updateAvatar(username) {
         const avatarPreview = document.getElementById('avatar-preview');
         if (avatarPreview && username.length > 0) {
