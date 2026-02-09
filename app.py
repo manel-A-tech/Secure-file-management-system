@@ -1,10 +1,8 @@
-from enum import unique
+
 from datetime import datetime, timedelta
-from os import access
-import profile
+
 from flask import Flask, flash, render_template, redirect, request, url_for, send_file, session
 from flask_sqlalchemy import SQLAlchemy
-from flask_scss import Scss
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from encruption import encode_salt, encrypt_file, decode_salt, decrypt_file
@@ -28,10 +26,10 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Simple Mail Transfer Protocol
 app.config['MAIL_PORT'] = 587  # encryption
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'bouasriachaima362@gmail.com'
+app.config['MAIL_USERNAME'] = ''
 # gmail 3rd party app password
 app.config['MAIL_PASSWORD'] = 'pzxy mdaj wihc epdr'
-app.config['MAIL_DEFAULT_SENDER'] = 'bouasriachaima362@gmail.com'
+app.config['MAIL_DEFAULT_SENDER'] = ''
 
 # file upload configuration
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -759,12 +757,6 @@ def access_shared():
 # access accounts
 
 
-#@app.route("/accounts")
-#@login_required
-#def view_accounts():
-    #accounts = Account.query.order_by(Account.id).all()
-    #return render_template('accounts.html', accounts=accounts)
-
 # delete an account by the id
 
 
@@ -833,8 +825,7 @@ def collaborations():
     
     return render_template('collaborations.html', 
                          folders=folders,
-                         username=current_user.username,
-                         profile_color=current_user.profile_color)
+                         username=current_user.username)
 
 # Create new collaborative folder
 @app.route("/collab/create", methods=["POST"])
@@ -902,8 +893,7 @@ def view_collab_folder(folder_id):
                          files=files,
                          members=members,
                          user_role=member.role,
-                         username=current_user.username,
-                         profile_color=current_user.profile_color)
+                         username=current_user.username)
 
 # Upload file to collaborative folder
 @app.route("/collab/<int:folder_id>/upload", methods=["POST"])
