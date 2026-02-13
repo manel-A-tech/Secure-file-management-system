@@ -982,7 +982,7 @@ def delete_collab_file(folder_id, file_id):
     
  
     if  member.role != 'owner':
-        flash("Only the uploader or folder owner can delete this file", "error")
+        flash("Only  folder owner can delete this file", "error")
         return redirect(f"/collab/{folder_id}")
     
     try:
