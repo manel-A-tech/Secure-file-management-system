@@ -1,6 +1,7 @@
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
+import hashlib
 
 class FileManager:
   def __init__(self , upload_folder):
@@ -82,6 +83,14 @@ class FileManager:
     if '.' in filename:
       return filename.rsplit('.', 1)[1].lower()
     return ''
+  
+
+  def hash_file_sha256(self, file_data: bytes) -> str:
+    return hashlib.sha256(file_data).hexdigest()
+
+  
+
+ 
 
     
 

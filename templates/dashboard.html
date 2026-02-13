@@ -1,45 +1,508 @@
 {% extends 'base.html' %}
 {% block head %}
 <title>Dashboard - Secure Share</title>
-{% end block head %}
+<style>
+    :root {
+        --profile-color: {
+                {
+                profile_color|default('#00ffc2')
+            }
+        }
+
+        ;
+    }
+
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 30px auto;
+        padding: 30px;
+    }
+
+    .top-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+        padding: 30px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+    }
+
+    .user-welcome {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .profile-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--profile-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: bold;
+        color: #0a0a0a;
+    }
+
+    .welcome-text h1 {
+        font-size: 32px;
+        color: #e5e5e5;
+        margin-bottom: 5px;
+    }
+
+    .welcome-text p {
+        color: #b0b0b0;
+        font-size: 16px;
+    }
+
+    .top-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.05);
+        color: #e5e5e5;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--profile-color) 0%, #38bdf8 100%);
+        color: #e5e5e5;
+        border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-primary:hover {
+        box-shadow: 0 8px 30px rgba(0, 255, 194, 0.4);
+    }
+
+    .btn-danger {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+    }
+
+    .btn-danger:hover {
+        background: rgba(239, 68, 68, 0.2);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 25px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--profile-color);
+        transform: translateY(-5px);
+    }
+
+    .stat-icon {
+        font-size: 36px;
+        margin-bottom: 10px;
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: var(--profile-color);
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        color: #b0b0b0;
+        font-size: 14px;
+    }
+
+    .filter-bar {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .filter-bar label {
+        color: #b0b0b0;
+        font-weight: 600;
+    }
+
+    .filter-bar select {
+        padding: 8px 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #e5e5e5;
+        cursor: pointer;
+    }
+
+    .upload-section {
+        background: rgba(255, 255, 255, 0.03);
+        border: 2px dashed rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        padding: 40px;
+        text-align: center;
+        margin: 30px 0;
+        transition: all 0.3s ease;
+    }
+
+    .upload-section:hover {
+        border-color: var(--profile-color);
+        background: rgba(0, 255, 194, 0.05);
+    }
+
+    .upload-form {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: -9999px;
+    }
+
+    .file-input-label {
+        display: block;
+        padding: 12px 24px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: #e5e5e5;
+    }
+
+    .file-input-label:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--profile-color);
+    }
+
+    .files-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+        margin-top: 30px;
+    }
+
+    .file-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 20px;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .file-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 40px rgba(0, 255, 194, 0.1);
+    }
+
+    .file-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+
+    .file-name {
+        font-weight: 600;
+        color: #e5e5e5;
+        margin-bottom: 10px;
+        word-break: break-word;
+    }
+
+    .file-meta {
+        display: flex;
+        justify-content: space-between;
+        color: #808080;
+        font-size: 12px;
+        margin-bottom: 15px;
+    }
+
+    .file-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .file-actions button,
+    .file-actions a {
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        cursor: pointer;
+        text-decoration: none;
+        border: none;
+        transition: all 0.3s ease;
+        flex: 1;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.05);
+        color: #e5e5e5;
+    }
+
+    .file-actions .btn-primary {
+        background: linear-gradient(135deg, var(--profile-color) 0%, #38bdf8 100%);
+        color: #0a0a0a;
+        background-color: #808080;
+    }
+
+    .file-actions .btn-danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    .favorite-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 24px;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.1);
+        }
+    }
+
+    .category-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        font-size: 11px;
+        color: var(--profile-color);
+        margin-bottom: 10px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #808080;
+    }
+
+    .empty-state h3 {
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div>
-    <div class="top-content">
-        <h1>Welcome, {{ username}}</h1>
-        <p>Your Secure file sharing dashboard</p>
+<div class="dashboard-container">
+    <div class="top-header">
+        <div class="user-welcome">
+            <div class="profile-avatar">
+                {{ username[0].upper() if username else 'U' }}
+            </div>
+            <div class="welcome-text">
+                <h1>Welcome back, {{ username }}! 👋</h1>
+                <p>Your secure file vault is ready</p>
+            </div>
+        </div>
+        <div class="top-actions">
+            <a href="/edit/{{ current_user.id }}" class="btn">✏️ Edit Profile</a>          
+            <a href="/collaborations" class="btn">🤝 Collaborations</a>
+            <a href="/access-shared" class="btn">🎁 Access Shared</a>
+            <a href="/logout" class="btn btn-primary">🚪 Logout</a>
+            <a href="/delete/{{ current_user.id }}" class="btn btn-danger"
+                onclick="return confirm('⚠️ Are you sure? This will delete ALL your files and cannot be undone!')">
+                🗑️ Delete Account
+            </a>
+        </div>
     </div>
-    <div class="bottom-content">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">{{ message }}</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📁</div>
+            <div class="stat-value">{{ total_files|default(0) }}</div>
+            <div class="stat-label">Total Files</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">⬇️</div>
+            <div class="stat-value">{{ total_downloads|default(0) }}</div>
+            <div class="stat-label">Downloads</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-value">{{ favorite_count|default(0) }}</div>
+            <div class="stat-label">Favorites</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🔒</div>
+            <div class="stat-value">100%</div>
+            <div class="stat-label">Encrypted</div>
+        </div>
+    </div>
+    <div class="upload-section">
+        <h3 style="font-size: 24px; margin-bottom: 10px;">📤 Upload New File</h3>
+        <p style="color: #b0b0b0; margin-bottom: 20px;">Drag & drop or click to upload (Max 16MB)</p>
+        <form action="/upload" method="POST" enctype="multipart/form-data" class="upload-form">
+            <div class="file-input-wrapper">
+                <input type="file" name="file" id="file" required onchange="updateFileName(this)">
+                <label for="file" class="file-input-label" id="file-label">
+                     Choose File
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary"> Upload</button>
+        </form>
+        <p style="color: #808080; font-size: 13px; margin-top: 15px;">
+            Supported: txt, pdf, png, jpg, jpeg, gif, doc, docx, zip, mp4, mp3
+        </p>
+    </div>
+    <div class="filter-bar">
+        <label>🔍 Filter:</label>
+        <select
+            onchange="window.location.href='/dashboard?filter=' + this.value + '&category={{ request.args.get('category', 'all') }}'">
+            <option value="all" {% if request.args.get('filter', 'all' )=='all' %}selected{% endif %}>All Files</option>
+            <option value="favorites" {% if request.args.get('filter')=='favorites' %}selected{% endif %}>⭐ Favorites
+            </option>
+        </select>
+
+        <label>📂 Category:</label>
+        <select
+            onchange="window.location.href='/dashboard?category=' + this.value + '&filter={{ request.args.get('filter', 'all') }}'">
+            <option value="all" {% if request.args.get('category', 'all' )=='all' %}selected{% endif %}>All Categories
+            </option>
+            <option value="images" {% if request.args.get('category')=='images' %}selected{% endif %}>🖼️ Images
+            </option>
+            <option value="documents" {% if request.args.get('category')=='documents' %}selected{% endif %}>📄 Documents
+            </option>
+            <option value="videos" {% if request.args.get('category')=='videos' %}selected{% endif %}>🎬 Videos</option>
+            <option value="audio" {% if request.args.get('category')=='audio' %}selected{% endif %}>🎵 Audio</option>
+            <option value="archives" {% if request.args.get('category')=='archives' %}selected{% endif %}>📦 Archives
+            </option>
+            <option value="other" {% if request.args.get('category')=='other' %}selected{% endif %}>📎 Other</option>
+        </select>
+    </div>
+    <h2 style="font-size: 28px; margin-bottom: 20px; text-align: center;">🗂️ Your Encrypted Files</h2>
+
+    {% if files %}
+    <div class="files-grid">
+        {% for file in files %}
+        <div class="file-card">
+            {% if file.is_favorite %}
+            <div class="favorite-badge">⭐</div>
+            {% endif %}
+
+            <div class="file-icon">
+                {% if file.category == 'images' %}🖼️
+                {% elif file.category == 'documents' %}📄
+                {% elif file.category == 'videos' %}🎬
+                {% elif file.category == 'audio' %}🎵
+                {% elif file.category == 'archives' %}📦
+                {% else %}📎
+                {% endif %}
+            </div>
+
+            <div class="category-badge">{{ file.category }}</div>
+
+            <div class="file-name">{{ file.original_filename }}</div>
+
+            <div class="file-meta">
+                <span>📊 {{ file.file_size }}</span>
+                <span>⬇️ {{ file.download_count }}</span>
+            </div>
+
+            <div class="file-meta">
+                <span>📅 {{ file.upload_date.strftime('%Y-%m-%d') }}</span>
+            </div>
+
+            <div class="file-actions">
+                <a href="/download/{{ file.id }}" class="btn btn-primary" style="flex: 2;">⬇️ Download</a>
+                <a href="/toggle-favorite/{{ file.id }}" class="btn">
+                    {% if file.is_favorite %}💔{% else %}⭐{% endif %}
+                </a>
+                <a href="/share/{{ file.id }}" class="btn">🎁</a>
+                <form action="/delete-file/{{ file.id }}" method="POST" style="display: inline; flex: 1;">
+                    <button type="submit" class="btn btn-danger" style="width: 100%;"
+                        onclick="return confirm('Delete this file?')">🗑️</button>
+                </form>
+            </div>
+        </div>
         {% endfor %}
-        {% endif %}
-        {% endwith %}
-
-
-        <h2>Your Account</h2>
-        <div class="dashboard-actions">
-            <button><a href="/edit/{{ current_user.id }}">Edit Profile</a></button>
-            <button><a href="/accounts">View All Accounts</a></button>
-            <button><a href="/logout">Logout</a></button>
-        </div>
-
-        <div class="features-section">
-            <h2>Quick Actions</h2>
-            <div class="box">
-                <h3>📁 Upload Files</h3>
-                <p> Upload and encrypt your files</p>
-            </div>
-            <div class="box">
-                <h3>📥 My Files</h3>
-                <p>View your uploaded files</p>
-            </div>
-            <div class="box">
-                <h3>🔐 Security</h3>
-                <p>Your password is encrypted and secure</p>
-            </div>
-        </div>
     </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>📭 No files yet</h3>
+        <p>Upload your first file to get started with secure storage!</p>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+    function updateFileName(input) {
+        const label = document.getElementById('file-label');
+        const profileColor = '{{ profile_color|default("#00ffc2") }}';
+
+        if (input.files && input.files[0]) {
+            label.textContent = '📄 ' + input.files[0].name;
+            label.style.borderColor = profileColor;
+        } else {
+            label.textContent = '📁 Choose File';
+        }
+    }
+    function applyFilters() {
+        const filter = document.getElementById('filterSelect').value;
+        const category = document.getElementById('categorySelect').value;
+        window.location.href = '/dashboard?filter=' + filter + '&category=' + category;
+    }
+</script>
 {% endblock %}

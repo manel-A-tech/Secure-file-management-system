@@ -1,41 +1,231 @@
 {% extends 'base.html' %}
 {% block head %}
-<title>Edit Account - Secure Share</title>
+<title>Edit Profile - Secure Share</title>
+<style>
+   
+
+    .edit-container {
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 40px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+    }
+
+    .edit-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .edit-header h1 {
+        font-size: 42px;
+        background: linear-gradient(135deg, var(--profile-color) 0%, #38bdf8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+    }
+
+    .profile-preview {
+        display: flex;
+        justify-content: center;
+        margin: 30px 0;
+    }
+
+    .profile-avatar-large {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: var(--profile-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 56px;
+        font-weight: bold;
+        color: #0a0a0a;
+        transition: all 0.3s ease;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+    }
+
+    .form-section h3 {
+        color: var(--profile-color);
+        margin-bottom: 15px;
+        font-size: 18px;
+    }
+
+    .form-grp {
+        margin-bottom: 20px;
+    }
+
+    .form-grp label {
+        display: block;
+        color: #fffafa;
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+
+    .form-grp input {
+        width: 100%;
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.03);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+    }
+
+    .form-grp input:focus {
+        outline: none;
+        border-color: var(--profile-color);
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 0 0 3px rgba(0, 255, 194, 0.1);
+    }
+
+
+
+
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        margin-top: 40px;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 16px;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        text-align: center;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--profile-color) 0%, #38bdf8 100%);
+        color: #0a0a0a;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 255, 194, 0.4);
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        color: #e5e5e5;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-danger {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+    }
+
+    .btn-danger:hover {
+        background: rgba(239, 68, 68, 0.2);
+    }
+
+    .info-box {
+        background: rgba(0, 255, 194, 0.05);
+        border: 1px solid rgba(0, 255, 194, 0.2);
+        border-radius: 12px;
+        padding: 15px;
+        margin-top: 20px;
+        color: #b0b0b0;
+        font-size: 14px;
+    }
+</style>
 {% endblock %}
+
 {% block content %}
-<div>
-    <div class="top-content">
-        <h1>Edit Account</h1>
-        <p>Update your account information</p>
+<div class="edit-container">
+    <div class="edit-header">
+        <h1>⚙️ Edit Profile</h1>
+        <p style="color: #b0b0b0; font-size: 16px;">Customize your account settings</p>
     </div>
 
-    <div class="bottom-content">
-        <h1>Update Information</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+    <div class="profile-preview">
+        <div class="profile-avatar-large" id="avatar-preview">
+            {{ username.upper() if username else 'U' }}
+        </div>
+    </div>
+    <form action="/edit/{{ current_user.id }}" method="POST">
+        <div class="form-section">
+            <h3>👤 Basic Information</h3>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">{{ message }}</div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+            <div class="form-grp">
+                <label>Username</label>
+                <input type="text" name="username" id="username" value="{{ account.username }}" required
+                    onchange="updateAvatar(this.value)">
+            </div>
 
-        <form action="/edit/{{ account.id }}" method="POST">
-            <h3>Username</h3>
-            <input type="text" placeholder="Username" name="username" id="username" value="{{ account.username }}"
-                required>
+            <div class="form-grp">
+                <label>📧 Email Address</label>
+                <input type="email" name="email" id="email" value="{{ account.email }}" required>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>🔒 Change Password</h3>
 
-            <h3>Email Address</h3>
-            <input type="email" placeholder="Email" name="email" id="email" value="{{ account.email }}" required>
+            <div class="form-grp">
+                <label>New Password (leave blank to keep current)</label>
+                <input type="password" name="password" id="password" placeholder="Enter new password" minlength="8">
+            </div>
 
-            <h3>New Password (leave blank to keep current)</h3>
-            <input type="password" placeholder="New password (optional)" name="password" id="password">
-
-            <button type="submit">Update Account</button>
-        </form>
-
-        <p><a href="/dashboard">Back to dashboard</a></p>
-        <p><a href="/delete/{{ account.id }}">Delete Account</a></p>
+            <div class="info-box">
+                💡 <strong>Tip:</strong> If you change your password, you won't be able to decrypt previously uploaded
+                files. They use your current password for encryption.
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button type="submit" class="btn btn-primary">
+                ✅ Save Changes
+            </button>
+            <a href="/dashboard" class="btn btn-secondary">
+                ❌ Cancel
+            </a>
+        </div>
+    </form>
+    <div class="form-section"
+        style="margin-top: 50px; padding-top: 30px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+        <h3 style="color: #ef4444;">⚠️ Danger Zone</h3>
+        <p style="color: #b0b0b0; margin-bottom: 20px;">
+            Once you delete your account, there is no going back. All your files will be permanently deleted.
+        </p>
+        <a href="/delete/{{ current_user.id }}" class="btn btn-danger"
+            onclick="return confirm('⚠️ Are you absolutely sure? This action cannot be undone! All your files will be deleted forever.')">
+            🗑️ Delete Account
+        </a>
     </div>
 </div>
+
+<script>
+    function updateAvatar(username) {
+        const avatarPreview = document.getElementById('avatar-preview');
+        if (avatarPreview && username.length > 0) {
+            avatarPreview.textContent = username[0].toUpperCase();
+        }
+    }
+</script>
 {% endblock %}

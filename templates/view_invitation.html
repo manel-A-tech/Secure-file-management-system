@@ -1,0 +1,71 @@
+<!-- templates/view_invitation.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 50px auto; padding: 30px;">
+    <div class="invitation-card" style="background: rgba(255,255,255,0.05); border-radius: 16px; padding: 40px; text-align: center;">
+        {% if current_user.is_authenticated %}
+            {% if current_user.id == invitation.user_id %}
+                <h2 style="color: #e5e5e5; margin-bottom: 20px;">🤝 Collaboration Invitation</h2>
+                
+                <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 25px; margin: 25px 0;">
+                    <h3 style="color: #00ffc2; margin-bottom: 10px;">{{ folder.name }}</h3>
+                    <p style="color: #b0b0b0; margin-bottom: 20px;">{{ folder.description or 'No description' }}</p>
+                    
+                    <div style="display: flex; gap: 15px; margin: 25px 0;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #808080;">Invited by</div>
+                            <div style="color: #e5e5e5; font-weight: bold;">{{ inviter.username }}</div>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #808080;">Your role</div>
+                            <div style="color: #00ffc2; font-weight: bold; text-transform: capitalize;">{{ invitation.role }}</div>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #808080;">Invited on</div>
+                            <div style="color: #e5e5e5;">{{ invitation.invited_at.strftime('%Y-%m-%d') }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
+                    <form action="/invite/{{ token }}/accept" method="POST" style="flex: 1;">
+                        <button type="submit" 
+                                style="width: 100%; padding: 15px; background: linear-gradient(135deg, #00ffc2, #38bdf8); border: none; border-radius: 10px; color: #000; font-weight: bold; cursor: pointer; font-size: 16px;">
+                            ✅ Accept Invitation
+                        </button>
+                    </form>
+                    
+                    <form action="/invite/{{ token }}/decline" method="POST" style="flex: 1;">
+                        <button type="submit" 
+                                onclick="return confirm('Are you sure you want to decline this invitation?')"
+                                style="width: 100%; padding: 15px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; color: #ef4444; font-weight: bold; cursor: pointer; font-size: 16px;">
+                            ❌ Decline
+                        </button>
+                    </form>
+                </div>
+                
+                <p style="color: #808080; font-size: 12px; margin-top: 20px;">
+                    You'll be redirected to your collaborations after accepting.
+                </p>
+            {% else %}
+                <h2 style="color: #e5e5e5;">This invitation is for another user</h2>
+                <p style="color: #b0b0b0;">Please log in with the account that received this invitation.</p>
+                <a href="/logout" class="btn" style="margin-top: 20px;">Switch Account</a>
+            {% endif %}
+        {% else %}
+            <h2 style="color: #e5e5e5; margin-bottom: 20px;">🤝 Collaboration Invitation</h2>
+            <p style="color: #b0b0b0; margin-bottom: 30px;">
+                You've been invited to collaborate on <strong>{{ folder.name }}</strong> by {{ inviter.username }}.
+            </p>
+            <div style="background: rgba(0,255,194,0.1); border-radius: 10px; padding: 20px; margin: 25px 0;">
+                <p style="color: #e5e5e5;">Please log in to accept or decline this invitation.</p>
+            </div>
+            <a href="/login?next=/invite/{{ token }}" 
+               style="display: inline-block; background: #00ffc2; color: #000; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 15px;">
+                🔐 Log In & View Invitation
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
