@@ -1,6 +1,5 @@
 
 from datetime import datetime, timedelta
-
 from flask import Flask, flash, render_template, redirect, request, url_for, send_file, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -26,10 +25,10 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Simple Mail Transfer Protocol
 app.config['MAIL_PORT'] = 587  # encryption
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = ''
+app.config['MAIL_USERNAME'] = 'bouasriachaima362@gmail.com'
 # gmail 3rd party app password
 app.config['MAIL_PASSWORD'] = 'pzxy mdaj wihc epdr'
-app.config['MAIL_DEFAULT_SENDER'] = ''
+app.config['MAIL_DEFAULT_SENDER'] = 'bouasriachaima362@gmail.com'
 
 # file upload configuration
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -482,7 +481,7 @@ def login():
                 session.permanent = False
 
             flash("login successful", "success")
-            next_page = request.args.get('next')
+            next_page = request.form.get('next') or request.args.get('next')
             return redirect(next_page) if next_page else redirect("/dashboard")
         else:
             flash("invalid username or password", "error")
@@ -853,7 +852,8 @@ def create_collab_folder():
         creator_member = CollabMember(
             folder_id=new_folder.id,
             user_id=current_user.id,
-            role='owner'
+            role='owner',
+            invite_status='accepted'
         )
         db.session.add(creator_member)
         db.session.commit()
@@ -958,6 +958,52 @@ def upload_collab_file(folder_id):
         flash(f"Error uploading file: {str(e)}", "error")
         return redirect("/collaborations#folder-" + str(folder_id))
 
+# Delete file from collaborative folder
+@app.route("/collab/<int:folder_id>/delete-file/<int:file_id>", methods=["POST"])
+@login_required
+def delete_collab_file(folder_id, file_id):
+    if not user_has_folder_access(current_user.id, folder_id):
+        flash("You don't have access to this folder", "error")
+        return redirect("/collaborations")
+    
+   
+    file_record = CollabFile.query.get_or_404(file_id)
+    
+   
+    if file_record.folder_id != folder_id:
+        flash("File not found in this folder", "error")
+        return redirect(f"/collab/{folder_id}")
+    
+  
+    member = CollabMember.query.filter_by(
+        user_id=current_user.id,
+        folder_id=folder_id
+    ).first()
+    
+ 
+    if  member.role != 'owner':
+        flash("Only the uploader or folder owner can delete this file", "error")
+        return redirect(f"/collab/{folder_id}")
+    
+    try:
+       
+        original_filename = file_record.original_filename
+        
+    
+        file_manager.delete_file(file_record.stored_filename)
+        
+       
+        db.session.delete(file_record)
+        db.session.commit()
+        
+        flash(f"File '{original_filename}' deleted successfully! 🗑️", "success")
+        return redirect(f"/collaborations#folder-{folder_id}")
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting file: {str(e)}", "error")
+        return redirect(f"/collab/{folder_id}")
+    
 # Download file from collaborative folder
 @app.route("/collab/<int:folder_id>/download/<int:file_id>")
 @login_required

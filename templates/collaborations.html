@@ -446,6 +446,36 @@
         margin-bottom: 8px;
     }
 
+    /* Add this after the .btn-danger style (around line 67) */
+
+.btn-delete {
+    padding: 8px 14px;
+    font-size: 12px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15));
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 8px;
+    color: #ef4444;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 5px;
+}
+
+.btn-delete:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.25));
+    border-color: rgba(239, 68, 68, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.btn-delete:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
     @media (max-width: 1200px) {
         .create-form {
             grid-template-columns: 1fr;
@@ -595,6 +625,14 @@
                                         <a href="/collab/{{ folder.id }}/download/{{ file.id }}" 
                                            class="btn btn-primary btn-small">⬇️ Download</a>
                                     </div>
+                                     {% if  member.role == 'owner' %}
+                                      <form method="POST" 
+                                      action="/collab/{{ folder.id }}/delete-file/{{ file.id }}" 
+                                      style="display: inline;"
+                                      onsubmit="return confirm('Are you sure you want to delete {{ file.original_filename }}?');">
+                                     <button type="submit" class="btn-delete">🗑️ Delete</button>
+                                     </form>
+                                     {% endif %}
                                 </div>
                                 {% endfor %}
                             {% else %}

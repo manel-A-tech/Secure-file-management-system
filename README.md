@@ -1,239 +1,293 @@
-# Secure-file-management-system
-A Python-based application for secure file sharing and management with authentication, encryption, and access control.
+#  SecureShare
 
-Overview
-Secure Share is a Flask-based web application that provides secure file storage, encryption, and collaborative file sharing features. The platform allows users to upload, encrypt, and share files with controlled access, while also offering collaborative folders for team-based file management.
+> A Flask-based web application for secure file storage, encryption, and collaborative file sharing — with end-to-end encryption, role-based access control, and full audit trails.
 
-Core Features
+![Python](https://img.shields.io/badge/Python-3.9%2B-3572A5?style=flat-square&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-Backend-000000?style=flat-square&logo=flask&logoColor=white)
+![AES-256](https://img.shields.io/badge/Encryption-AES%E2%80%93256-e74c3c?style=flat-square)
+![SQLite](https://img.shields.io/badge/Database-SQLite-003087?style=flat-square)
 
- Security Features
-End-to-end file encryption using AES-256 encryption
 
-Password-based key derivation (PBKDF2 with SHA256)
+---
 
-File integrity verification via SHA-256 hashing
+##  Table of Contents
 
-Secure session management with configurable lifetimes
+1. [Overview](#overview)
+2. [Core Features](#core-features)
+3. [How Encryption Works](#how-encryption-works)
+4. [Architecture](#architecture)
+5. [Database Models](#database-models)
+6. [API Endpoints](#api-endpoints)
+7. [Project Structure](#project-structure)
+8. [Setup & Installation](#setup--installation)
+9. [Notes](#notes)
 
-Email verification for account security
+---
 
- File Management
-Personal file storage with categorization
+##  Overview
 
-File sharing with access codes and expiration dates
+**SecureShare** lets users upload, encrypt, and share files with controlled access. Every file is encrypted before it ever touches disk using AES-256, and only users with the correct credentials and permissions can decrypt it. The platform also supports collaborative folders where teams can share files under a shared encryption context with role-based access.
 
-Favorite file marking system
+---
 
-Download tracking and statistics
+##  Core Features
 
-File integrity checking on download
+###  Security
+- End-to-end file encryption using **AES-256**
+- Password-based key derivation via **PBKDF2 + SHA-256**
+- File integrity verification with **SHA-256 hashing**
+- Secure session management with configurable lifetimes
+- Email verification on account creation
 
- Collaboration Features
-Collaborative folders for team file sharing
+###  File Management
+- Personal file storage with **categorization**
+- File sharing via **access codes** with expiration dates
+- Favorite file marking system
+- Download tracking and statistics
+- Integrity check on every download
 
-Role-based access control (Owner, Editor, Viewer)
+###  Collaboration
+- **Collaborative folders** for team-based file sharing
+- Role-based access control — **Owner**, **Editor**, **Viewer**
+- Email invitations with secure token links
+- Public / private folder toggle
+- Shared upload and download within folders
 
-Email invitations with secure token links
+###  Email Integration
+- Account verification emails
+- File share notifications
+- Collaboration invitations
+- Password reset functionality
 
-Public/private folder settings
+---
 
-Collaborative file upload/download
+##  How Encryption Works
 
- Email Integration
-Account verification emails
+The encryption pipeline is split across `encruption.py` and `file_management.py`.
 
-File share notifications
+### Upload Flow
 
-Collaboration invitations
-
-Password reset functionality
-
- Architecture
-Tech Stack
-Backend: Flask (Python)
-
-Database: SQLite with SQLAlchemy ORM
-
-Frontend: HTML, CSS (with SCSS), JavaScript
-
-Encryption: cryptography.fernet (AES-256)
-
-Email: Flask-Mail with Gmail SMTP
-
-Authentication: Flask-Login
-
-Database Models
-Account - User accounts with verification
-id, email, username, password, is_verified, 
-verification_code, code_expiry, theme
-
-UploadedFile - Personal file storage records
-id, user_id, original_filename, stored_filename, 
-file_size, salt, upload_date, download_count, 
-is_favorite, category, file_hash
-
-FileShare - File sharing records
-id, file_id, sender_id, recipient_email, 
-share_code, created_at, expires_at, access_count, max_access
-
-CollabFolder - Collaborative folders
-id, name, description, created_by, created_at, is_public
-
-CollabMember - Folder membership and invitations
-id, folder_id, user_id, role, joined_at, 
-invite_token, invite_status, invited_at, invited_by
-
-CollabFile - Files in collaborative folders
-folder_id ,uploaded_by ,original_filename ,stored_filename, file_hash
-
-Note : Collaborative files are encrypted using the folder creator's password, so all members can decrypt them regardless of their own password.
-
-How Encryption Works
-The encryption pipeline is split across encruption.py and file_management.py:
-Upload flow:
+```
   raw file bytes
-      │
-      ▼
-  PBKDF2HMAC(password, random 16-byte salt, 100 000 iterations)
-      │ produces a 32-byte key
-      ▼
+       │
+       ▼
+  PBKDF2HMAC(password, random 16-byte salt, 100,000 iterations)
+       │  produces a 32-byte key
+       ▼
   Fernet(key).encrypt(file bytes)
-      │
-      ├──► encrypted bytes  →  saved to disk  (uploads/<unique_filename>)
-      └──► base64(salt)     →  stored in DB   (UploadedFile.salt)
+       │
+       ├──► encrypted bytes  →  saved to disk   (uploads/<unique_filename>)
+       └──► base64(salt)     →  stored in DB    (UploadedFile.salt)
+```
 
-Download flow:
+### Download Flow
+
+```
   encrypted bytes  ←  read from disk
   base64(salt)     ←  read from DB
-      │
-      ▼
-  PBKDF2HMAC(password, decoded salt, 100 000 iterations)  →  same key
-      │
-      ▼
+       │
+       ▼
+  PBKDF2HMAC(password, decoded salt, 100,000 iterations)  →  same key
+       │
+       ▼
   Fernet(key).decrypt(encrypted bytes)
-      │
-      ▼
+       │
+       ▼
   SHA-256 hash compared against the hash stored at upload time
-      │
-      ▼
+       │
+       ▼
   decrypted file sent to user
-Key points:
+```
 
-The salt is unique per file, so the same password produces a different encryption key each time.
-Fernet provides authenticated encryption (AES-128-CBC + HMAC-SHA256), so tampering is detected at the decryption step.
-A separate SHA-256 hash of the original plaintext is stored at upload time and verified on every download for an additional integrity check.
+### Key Points
 
-API Endpoints
-Authentication
-GET / - Home page
+| Point | Detail |
+|---|---|
+| **Unique salt per file** | The same password produces a different encryption key for every file. |
+| **Authenticated encryption** | Fernet uses AES-128-CBC + HMAC-SHA256 internally — any tampering is caught at decryption. |
+| **Double integrity check** | A SHA-256 hash of the original plaintext is stored at upload and re-verified on every download. |
 
-GET/POST /register - User registration
+> **Note:** Collaborative files are encrypted using the **folder creator's password**, so all folder members can decrypt them regardless of their own password.
 
-GET/POST /login - User login
+---
 
-GET /logout - User logout
+##  Architecture
 
-GET/POST /verify - Email verification
+### Tech Stack
 
-GET /resend-code/<user_id> - Resend verification code
+| Layer | Technology |
+|---|---|
+| **Backend** | Flask (Python) |
+| **Database** | SQLite via SQLAlchemy ORM |
+| **Frontend** | HTML, CSS (SCSS), JavaScript |
+| **Encryption** | `cryptography.fernet` (AES-256) |
+| **Email** | Flask-Mail + Gmail SMTP |
+| **Auth** | Flask-Login |
 
-File Management
-GET /dashboard - User dashboard
+---
 
-POST /upload - Upload file
+##  Database Models
 
-GET /download/<file_id> - Download personal file
+```
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐
+│   Account   │────▶│ UploadedFile │────▶│   FileShare   │
+│             │     │              │     │               │
+│ id          │     │ id           │     │ id            │
+│ email       │     │ user_id      │     │ file_id       │
+│ username    │     │ original_filename  │ sender_id     │
+│ password    │     │ stored_filename    │ recipient_email│
+│ is_verified │     │ file_size    │     │ share_code    │
+│ theme       │     │ salt         │     │ expires_at    │
+│ ...         │     │ file_hash    │     │ max_access    │
+└─────────────┘     │ ...          │     └───────────────┘
+                    └──────────────┘
+┌──────────────┐    ┌──────────────┐     ┌───────────────┐
+│ CollabFolder │───▶│ CollabMember │     │  CollabFile   │
+│              │    │              │     │               │
+│ id           │    │ id           │     │ folder_id     │
+│ name         │    │ folder_id    │     │ uploaded_by   │
+│ description  │    │ user_id      │     │ original_filename
+│ created_by   │    │ role         │     │ stored_filename
+│ is_public    │    │ invite_token │     │ file_hash     │
+│ ...          │    │ ...          │     └───────────────┘
+└──────────────┘    └──────────────┘
+```
 
-POST /delete-file/<file_id> - Delete file
+| Model | Purpose |
+|---|---|
+| `Account` | User accounts — credentials, verification state, theme |
+| `UploadedFile` | Personal file records — name, size, salt, hash, favorites, category |
+| `FileShare` | Sharing metadata — codes, expiry, access limits |
+| `CollabFolder` | Team folders — name, owner, public/private flag |
+| `CollabMember` | Membership & invitations — role, token, status |
+| `CollabFile` | Files inside collaborative folders — linked to folder, hashed |
 
-GET /toggle-favorite/<file_id> - Toggle favorite status
+---
 
-File Sharing
-GET/POST /share/<file_id> - Share file with others
+##  API Endpoints
 
-GET/POST /access-shared - Access shared files with code
+### Authentication
 
-Collaboration
-GET /collaborations - List collaborative folders
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/` | Home page |
+| `GET / POST` | `/register` | User registration |
+| `GET / POST` | `/login` | User login |
+| `GET` | `/logout` | User logout |
+| `GET / POST` | `/verify` | Email verification |
+| `GET` | `/resend-code/<user_id>` | Resend verification code |
 
-POST /collab/create - Create collaborative folder
+### File Management
 
-GET /collab/<folder_id> - View specific folder
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/dashboard` | User dashboard |
+| `POST` | `/upload` | Upload a file |
+| `GET` | `/download/<file_id>` | Download a personal file |
+| `POST` | `/delete-file/<file_id>` | Delete a file |
+| `GET` | `/toggle-favorite/<file_id>` | Toggle favorite status |
 
-POST /collab/<folder_id>/upload - Upload to collaborative folder
+### File Sharing
 
-GET /collab/<folder_id>/download/<file_id> - Download from collaborative folder
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET / POST` | `/share/<file_id>` | Share a file with others |
+| `GET / POST` | `/access-shared` | Access a shared file via code |
 
-POST /collab/<folder_id>/invite - Invite members
+### Collaboration
 
-POST /collab/<folder_id>/remove/<member_id> - Remove members
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/collaborations` | List all collaborative folders |
+| `POST` | `/collab/create` | Create a collaborative folder |
+| `GET` | `/collab/<folder_id>` | View a specific folder |
+| `POST` | `/collab/<folder_id>/upload` | Upload to a collaborative folder |
+| `GET` | `/collab/<folder_id>/download/<file_id>` | Download from a collaborative folder |
+| `POST` | `/collab/<folder_id>/invite` | Invite a member |
+| `POST` | `/collab/<folder_id>/remove/<member_id>` | Remove a member |
+| `POST` | `/collab/<folder_id>/delete` | Delete a folder |
+| `GET` | `/invite/<token>` | View an invitation |
 
-POST /collab/<folder_id>/delete - Delete folder
+### Account Management
 
-GET /invite/<token> - View invitation
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET / POST` | `/edit/<id>` | Edit account details |
+| `GET` | `/delete/<id>` | Delete account |
 
-Account Management
-GET/POST /edit/<id> - Edit account details
+---
 
-GET /delete/<id> - Delete account
+##  Project Structure
 
-Project Structure
+```
 SecureShare/
 │
-├── app.py                  # Main application: routes, models, business logic
-├── encruption.py           # Encryption/decryption helpers (Fernet + PBKDF2)
-├── file_management.py      # FileManager class: disk I/O, hashing, temp files
+├── app.py                   # Main application — routes, models, business logic
+├── encruption.py            # Encryption/decryption helpers (Fernet + PBKDF2)
+├── file_management.py       # FileManager class — disk I/O, hashing, temp files
 │
 ├── templates/
-│   ├── base.html           # Shared layout and navigation bar
-│   ├── index.html          # Landing page
-│   ├── registration.html   # Sign-up form
-│   ├── verify.html         # Email verification code entry
-│   ├── login.html          # Sign-in form
-│   ├── dashboard.html      # Main dashboard: stats, upload, file grid
-│   ├── edit.html           # Profile editing form
-│   ├── share.html          # File sharing configuration form
-│   ├── access_shared.html  # Enter a share code to download a file
-│   ├── collaborations.html # Collaborative folders: create, view, upload, invite
-│   └── view_invitation.html# Accept or decline a collaboration invite
+│   ├── base.html            # Shared layout and navigation bar
+│   ├── index.html           # Landing page
+│   ├── registration.html    # Sign-up form
+│   ├── verify.html          # Email verification code entry
+│   ├── login.html           # Sign-in form
+│   ├── dashboard.html       # Main dashboard — stats, upload, file grid
+│   ├── edit.html            # Profile editing form
+│   ├── share.html           # File sharing configuration form
+│   ├── access_shared.html   # Enter a share code to download a file
+│   ├── collaborations.html  # Collaborative folders — create, view, upload, invite
+│   └── view_invitation.html # Accept or decline a collaboration invite
 │
 ├── static/
-│   └── style.css           # Global stylesheet
+│   └── style.css            # Global stylesheet
 │
-├── uploads/                # Directory for encrypted files on disk (auto-created)
+├── uploads/                 # Encrypted files on disk (auto-created)
 │
 └── instance/
-    └── database.db         # SQLite database file (auto-created)
+    └── database.db          # SQLite database file (auto-created)
+```
 
-Setup & Installation
-Prerequisites
+---
 
-Python 3.9+
-pip
+##  Setup & Installation
 
-Steps
-bash# 1. Clone the repository
+### Prerequisites
+
+- Python **3.9+**
+- `pip`
+
+### Steps
+
+```bash
+# 1. Clone the repository
 git clone <repository-url>
 cd SecureShare
 
 # 2. Create and activate a virtual environment
 python -m venv venv
-source venv/bin/activate      # Linux / macOS
-# venv\Scripts\activate       # Windows
+source venv/bin/activate        # Linux / macOS
+# venv\Scripts\activate         # Windows
 
 # 3. Install dependencies
 pip install flask flask-sqlalchemy flask-login flask-mail flask-migrate flask-scss cryptography werkzeug
 
-# 4. Run database migrations (first time)
+# 4. Run database migrations (first time only)
 flask db init
 flask db migrate -m "initial migration"
 flask db upgrade
 
 # 5. Start the development server
 python app.py
-The server starts at http://127.0.0.1:5000 by default.
+```
 
-Note: The uploads/ folder is created automatically on first run if it does not exist.
+The server starts at **http://127.0.0.1:5000** by default.
 
+> **Note:** The `uploads/` folder is created automatically on first run if it does not already exist.
 
-Note: This is a student project for educational purposes. Always use additional security measures for production deployments.
+---
+
+##  Notes
+
+>  This is a **student project** built for educational purposes. If you plan to deploy this in a production environment, consider adding additional security hardening such as HTTPS enforcement, stronger rate limiting, secrets management, and a production-grade database.
+
